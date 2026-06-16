@@ -21,6 +21,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+      # Grace period so the cold-volume init/restart isn't counted as unhealthy.
+      start_period: 10s
 
 volumes:
   inbox_pgdata:
