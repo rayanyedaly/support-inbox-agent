@@ -92,9 +92,9 @@ prisma/seed.ts              # fake customers/orders/tickets/KB
 
 - [x] **Phase 0 (~30 min)** — scaffold, schema, `docker-compose` Postgres, seed script.
       First commits.
-- [~] **Phase 1 — the core (~3–4 hrs)** — ACTIVE — tools + handlers, hand-rolled streaming
+- [x] **Phase 1 — the core (~3–4 hrs)** — tools + handlers, hand-rolled streaming
       tool-use loop, context accumulation + compaction, `LlmCall` logging on every call.
-- [ ] **Phase 2 (~1.5–2 hrs)** — full-stack surface: inbox list, ticket thread, agent
+- [~] **Phase 2 (~1.5–2 hrs)** — ACTIVE — full-stack surface: inbox list, ticket thread, agent
       panel (watch tool calls happen, approve drafts), cost dashboard.
 - [ ] **Phase 3 (~1–1.5 hrs)** — 10–15 meaningful tests, README (architecture +
       tradeoffs section), clean commit narrative, deploy with seeded demo DB.
