@@ -53,8 +53,9 @@ model Ticket {
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 
-  messages Message[]
-  llmCalls LlmCall[]
+  messages    Message[]
+  llmCalls    LlmCall[]
+  compactions Compaction[]
 
   @@index([customerId])
   @@index([status])
@@ -103,6 +104,23 @@ model LlmCall {
   // The tool_use blocks the model emitted on this turn, as JSON, so the dashboard
   // can show "4 model calls, 6 tool calls" without reconstructing it.
   toolCalls    Json?
+  createdAt    DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([createdAt])
+}
+
+// One row per context-compaction event — makes the "context management" pillar
+// observable: how many tokens were squeezed out and the summarizer cost to do it.
+model Compaction {
+  id           String   @id @default(cuid())
+  ticketId     String?
+  ticket       Ticket?  @relation(fields: [ticketId], references: [id])
+  tokensBefore Int
+  tokensAfter  Int
+  tokensSaved  Int
+  costUsd      Decimal  @db.Decimal(10, 6) // summarizer-call cost
+  model        String
   createdAt    DateTime @default(now())
 
   @@index([ticketId])

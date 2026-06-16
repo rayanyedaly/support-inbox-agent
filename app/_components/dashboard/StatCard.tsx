@@ -3,18 +3,27 @@ export function StatCard({
   label,
   value,
   sub,
+  good,
 }: {
   label: string;
   value: string;
   sub?: string;
+  good?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-semibold text-neutral-900">{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-neutral-500">{sub}</p>}
+    <div className="rounded-[11px] border border-border bg-surface px-[17px] py-[15px]">
+      <div className="font-mono text-[9.5px] tracking-[0.06em] text-faint">{label}</div>
+      <div className="mt-2 font-mono text-[26px] font-semibold tracking-[-0.02em] text-ink">
+        {value}
+      </div>
+      {sub && (
+        <div
+          className="mt-1.5 text-[11.5px] text-muted"
+          style={good ? { color: "var(--resolved-fg)" } : undefined}
+        >
+          {sub}
+        </div>
+      )}
     </div>
   );
 }

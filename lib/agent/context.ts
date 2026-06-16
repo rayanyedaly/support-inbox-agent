@@ -25,6 +25,7 @@ import {
   COMPACTION_TOKEN_THRESHOLD,
 } from "./llm";
 import type { TokenUsage } from "./cost";
+import { prisma } from "../prisma";
 
 /** Live context size = everything the model reads next turn (uncached + cached). */
 export function liveContextTokens(usage: TokenUsage): number {
@@ -132,6 +133,19 @@ export async function maybeCompact(args: {
     system,
     tools,
     messages: compactedMessages,
+  });
+
+  // Persist the compaction event so the dashboard can show real savings (the one
+  // additive observability write — loop logic is otherwise unchanged).
+  await prisma.compaction.create({
+    data: {
+      ticketId: ticketId ?? null,
+      tokensBefore: before.input_tokens,
+      tokensAfter: after.input_tokens,
+      tokensSaved: before.input_tokens - after.input_tokens,
+      costUsd: summaryCostUsd,
+      model: SUMMARY_MODEL,
+    },
   });
 
   return {

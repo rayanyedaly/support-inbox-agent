@@ -226,6 +226,15 @@ export interface DashboardStats {
   resolvedCount: number;
   avgCostPerResolved: number;
   spendByDay: { day: string; spend: number }[];
+  spendByModel: { model: string; spend: number; calls: number }[];
+  recentRuns: {
+    ticketId: string;
+    subject: string;
+    status: string;
+    costUsd: number;
+    latencyMs: number;
+  }[];
+  compactionSavings: { tokensSaved: number; count: number; costSaved: number };
 }
 
 /**
@@ -235,25 +244,37 @@ export interface DashboardStats {
  * which would fold in unresolved tickets and ticketId-null calls).
  */
 export async function dashboardStats(): Promise<DashboardStats> {
-  const [totals, tokens, resolvedRows, totalTickets, spendRows] = await Promise.all([
-    prisma.llmCall.aggregate({ _sum: { costUsd: true }, _count: { _all: true } }),
-    prisma.llmCall.aggregate({
-      _sum: { inputTokens: true, outputTokens: true, cacheReadTokens: true },
-    }),
-    prisma.message.findMany({
-      where: { role: "AI", status: "SENT" },
-      select: { ticketId: true },
-      distinct: ["ticketId"],
-    }),
-    prisma.ticket.count(),
-    // Bucket + format the day in SQL (to_char) so the label is UTC-deterministic and
-    // doesn't depend on the Node server's TZ when a timestamp round-trips through Date.
-    // SUM(numeric) comes back as a string from the pg driver — decToNumber handles it.
-    prisma.$queryRaw<{ day: string; spend: string }[]>`
-      SELECT to_char(date_trunc('day', "createdAt"), 'YYYY-MM-DD') AS day,
-             SUM("costUsd") AS spend
-      FROM "LlmCall" GROUP BY day ORDER BY day`,
-  ]);
+  const [totals, tokens, resolvedRows, totalTickets, spendRows, modelRows, runRows, comp] =
+    await Promise.all([
+      prisma.llmCall.aggregate({ _sum: { costUsd: true }, _count: { _all: true } }),
+      prisma.llmCall.aggregate({
+        _sum: { inputTokens: true, outputTokens: true, cacheReadTokens: true },
+      }),
+      prisma.message.findMany({
+        where: { role: "AI", status: "SENT" },
+        select: { ticketId: true },
+        distinct: ["ticketId"],
+      }),
+      prisma.ticket.count(),
+      // Bucket + format the day in SQL (to_char) so the label is UTC-deterministic and
+      // doesn't depend on the Node server's TZ when a timestamp round-trips through Date.
+      // SUM(numeric) comes back as a string from the pg driver — decToNumber handles it.
+      prisma.$queryRaw<{ day: string; spend: string }[]>`
+        SELECT to_char(date_trunc('day', "createdAt"), 'YYYY-MM-DD') AS day,
+               SUM("costUsd") AS spend
+        FROM "LlmCall" GROUP BY day ORDER BY day`,
+      prisma.$queryRaw<{ model: string; spend: string; calls: number }[]>`
+        SELECT "model", SUM("costUsd") AS spend, COUNT(*)::int AS calls
+        FROM "LlmCall" GROUP BY "model" ORDER BY spend DESC`,
+      prisma.$queryRaw<{ ticketId: string; subject: string; status: string; cost: string; latency: number }[]>`
+        SELECT l."ticketId", t."subject", t."status"::text AS status,
+               SUM(l."costUsd") AS cost, SUM(l."latencyMs")::int AS latency, MAX(l."createdAt") AS lastrun
+        FROM "LlmCall" l JOIN "Ticket" t ON t."id" = l."ticketId"
+        WHERE l."ticketId" IS NOT NULL
+        GROUP BY l."ticketId", t."subject", t."status"
+        ORDER BY lastrun DESC LIMIT 8`,
+      prisma.compaction.aggregate({ _sum: { tokensSaved: true }, _count: { _all: true } }),
+    ]);
 
   const resolvedIds = resolvedRows.map((r) => r.ticketId);
   const resolvedCost = resolvedIds.length
@@ -277,5 +298,23 @@ export async function dashboardStats(): Promise<DashboardStats> {
     resolvedCount: resolvedIds.length,
     avgCostPerResolved: resolvedIds.length ? resolvedCost / resolvedIds.length : 0,
     spendByDay: spendRows.map((r) => ({ day: r.day, spend: decToNumber(r.spend) })),
+    spendByModel: modelRows.map((r) => ({
+      model: r.model,
+      spend: decToNumber(r.spend),
+      calls: r.calls,
+    })),
+    recentRuns: runRows.map((r) => ({
+      ticketId: r.ticketId,
+      subject: r.subject,
+      status: r.status,
+      costUsd: decToNumber(r.cost),
+      latencyMs: r.latency,
+    })),
+    compactionSavings: {
+      tokensSaved: comp._sum.tokensSaved ?? 0,
+      count: comp._count._all,
+      // Tokens saved would have re-cost input price on the next call (~$3/MTok Sonnet).
+      costSaved: Math.round(((comp._sum.tokensSaved ?? 0) * 3) / 1e6 * 1e6) / 1e6,
+    },
   };
 }
