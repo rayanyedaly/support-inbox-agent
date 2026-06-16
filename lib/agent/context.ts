@@ -41,6 +41,8 @@ export interface CompactionResult {
   tokensBefore: number;
   tokensAfter: number;
   tokensSaved: number;
+  /** Cost of the summarizer (Haiku) call, so the per-run total stays honest. */
+  summaryCostUsd: number;
 }
 
 const SUMMARY_SYSTEM =
@@ -73,6 +75,7 @@ export async function maybeCompact(args: {
     tokensBefore: n,
     tokensAfter: n,
     tokensSaved: 0,
+    summaryCostUsd: 0,
   });
 
   if (liveTokens <= COMPACTION_TOKEN_THRESHOLD) return noop(liveTokens);
@@ -101,7 +104,7 @@ export async function maybeCompact(args: {
     system: SUMMARY_SYSTEM,
     messages: [{ role: "user", content: renderTranscript(older) }],
   });
-  await logLlmCall({
+  const summaryCostUsd = await logLlmCall({
     ticketId,
     model: SUMMARY_MODEL,
     usage: summaryMsg.usage,
@@ -137,6 +140,7 @@ export async function maybeCompact(args: {
     tokensBefore: before.input_tokens,
     tokensAfter: after.input_tokens,
     tokensSaved: before.input_tokens - after.input_tokens,
+    summaryCostUsd,
   };
 }
 

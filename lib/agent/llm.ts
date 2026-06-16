@@ -9,7 +9,9 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+// Relative (not "@/lib/prisma") so the standalone tsx runner resolves it — tsx does
+// not honor tsconfig path aliases.
+import { prisma } from "../prisma";
 import { costUsd, type TokenUsage } from "./cost";
 
 // --- Config (env-driven; sane defaults) ------------------------------------
@@ -50,8 +52,8 @@ export interface LlmCallRecord {
   /** Real usage from the API response (structurally a TokenUsage). */
   usage: TokenUsage;
   latencyMs: number;
-  /** The tool_use blocks the model emitted on this turn, as JSON (may be empty). */
-  toolCalls?: Prisma.InputJsonValue;
+  /** The tool_use blocks the model emitted on this turn (JSON-serializable; may be omitted). */
+  toolCalls?: unknown;
 }
 
 /**
@@ -70,7 +72,10 @@ export async function logLlmCall(rec: LlmCallRecord): Promise<number> {
       cacheWriteTokens: rec.usage.cache_creation_input_tokens ?? null,
       costUsd: cost,
       latencyMs: rec.latencyMs,
-      toolCalls: rec.toolCalls ?? Prisma.JsonNull,
+      toolCalls:
+        rec.toolCalls === undefined
+          ? Prisma.JsonNull
+          : (rec.toolCalls as Prisma.InputJsonValue),
     },
   });
   return cost;
