@@ -1,0 +1,9 @@
+node_modules/
+cdk.out/
+.cdk.staging/
+# This stack does no context lookups; the file only appears when synthing with
+# real creds and would bake an account id + pin AZs. Keep it out of the repo.
+cdk.context.json
+*.js
+*.d.ts
+*.tsbuildinfo

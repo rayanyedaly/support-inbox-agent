@@ -1,0 +1,22 @@
+{
+  "name": "inbox-agent-infra",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AWS CDK stack for the inbox agent — a separate, cuttable IaC artifact (not the demo host).",
+  "scripts": {
+    "synth": "cdk synth",
+    "diff": "cdk diff",
+    "deploy": "cdk deploy",
+    "destroy": "cdk destroy"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "aws-cdk": "^2.160.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.160.0",
+    "constructs": "^10.3.0"
+  }
+}
