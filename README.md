@@ -544,6 +544,30 @@ secrets are required.
 
 ---
 
+## Infrastructure (AWS CDK · separate artifact)
+
+`infra/` holds an account-agnostic AWS CDK stack — a **separate, cuttable IaC artifact, not
+the demo host**. It exists to show the same container standing up on AWS:
+
+```
+internet ──► ALB ──► Fargate task (Next.js standalone + Prisma) ──► RDS Postgres
+```
+
+The app is packaged by a multi-stage `Dockerfile` (standalone Next output, non-root user,
+Prisma engines + migrations baked in; the entrypoint runs `migrate deploy` before the server
+listens). The stack is cost-conscious by design — no NAT gateway, a `t4g.micro` disposable DB,
+the smallest sensible Fargate task — and is meant to be **deploy → screenshot → `cdk destroy`**,
+never left running. The container image is decoupled from synthesis, so `cdk synth` runs offline
+with no Docker and no AWS credentials:
+
+```bash
+cd infra && npm install && npm run synth
+```
+
+See `infra/README.md` for the full build-push-deploy-destroy flow.
+
+---
+
 ## Current scope & limitations
 
 - **Single workspace.** No authentication, multi-tenancy, RBAC, or org isolation.
@@ -553,6 +577,7 @@ secrets are required.
 - **Derived data.** The "grounded-in" citations and KB cite counts are re-derived from logged
   search queries and are approximate; the ticket trace and most dashboard panels are computed from
   the `LlmCall` table rather than a dedicated run-history table.
-- **Not yet deployed.** It runs locally and in CI against Docker Postgres; there is no hosted
-  instance.
+- **No persistent hosted instance.** It runs locally and in CI against Docker Postgres. The
+  `infra/` CDK stack can stand it up on AWS Fargate + RDS on demand (deploy → screenshot →
+  destroy), but nothing is left running — there is no always-on demo URL.
 - The agent persona and user in the UI (model status card, sidebar profile) are fixed demo chrome.

@@ -94,11 +94,13 @@ prisma/seed.ts              # fake customers/orders/tickets/KB
       First commits.
 - [x] **Phase 1 — the core (~3–4 hrs)** — tools + handlers, hand-rolled streaming
       tool-use loop, context accumulation + compaction, `LlmCall` logging on every call.
-- [~] **Phase 2 (~1.5–2 hrs)** — ACTIVE — full-stack surface: inbox list, ticket thread, agent
-      panel (watch tool calls happen, approve drafts), cost dashboard.
-- [ ] **Phase 3 (~1–1.5 hrs)** — 10–15 meaningful tests, README (architecture +
-      tradeoffs section), clean commit narrative, deploy with seeded demo DB.
-- [ ] **Phase 4 (~1–1.5 hrs, CUTTABLE)** — Dockerfile hygiene, then AWS CDK stack.
+- [x] **Phase 2 (~1.5–2 hrs)** — full-stack surface: inbox list, ticket thread, agent
+      panel (watch tool calls happen, approve drafts), cost dashboard. All shipped.
+- [~] **Phase 3 (~1–1.5 hrs)** — 16 tests + README (architecture + tradeoffs) + CI: done.
+      Remaining: a live deploy with a seeded demo DB (deferred — see Phase 4 note).
+- [x] **Phase 4 (~1–1.5 hrs, CUTTABLE)** — multi-stage `Dockerfile` + account-agnostic
+      AWS CDK stack in `infra/` (Fargate + RDS); `cdk synth` is clean. IaC is a separate
+      artifact, not the demo host — so the Phase 3 "live demo URL" is intentionally open.
 
 Mark the active phase when you start a session so context survives across sessions.
 
